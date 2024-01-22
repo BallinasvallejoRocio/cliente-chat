@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+      }
+
+      #chat {
+        max-width: 600px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        overflow-y: scroll;
+        height: 300px;
+      }
+
+      #messageInput {
+        width: 70%;
+        margin: 10px auto;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-sizing: border-box;
+        display: block;
+      }
+
+      button {
+        display: block;
+        margin: 10px auto;
+        padding: 10px;
+        background-color: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="chat"></div>
+    <input type="text" id="messageInput" placeholder="Type your message" />
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+      // Long Polling
+      setInterval(() => {
+        fetch("http://localhost:3000/longpolling")
+          .then((response) => response.text())
+          .then((data) => {
+            if (!data.startsWith("Data from Long Polling")) {
+              displayMessage(`Long Polling: ${data}`);
+            }
+          });
+      }, 6000);
+
+      // Short Polling
+      setInterval(() => {
+        fetch("http://localhost:3000/shortpolling")
+          .then((response) => response.text())
+          .then((data) => {
+            if (!data.startsWith("Data from Short Polling")) {
+              displayMessage(`Short Polling: ${data}`);
+            }
+          });
+      }, 4000);
+
+      // WebSocket
+      const ws = new WebSocket("ws://localhost:3000");
+
+      ws.onmessage = (event) => {
+        if (event.data instanceof Blob) {
+          event.data.text().then((text) => {
+            displayMessage(`WebSocket: ${text}`);
+          });
+        } else {
+          displayMessage(`WebSocket: ${event.data}`);
+        }
+      };
+
+      function displayMessage(message) {
+        const chatDiv = document.getElementById("chat");
+        const messageDiv = document.createElement("div");
+        messageDiv.textContent = message;
+        chatDiv.appendChild(messageDiv);
+      }
+
+      function sendMessage() {
+        const inputElement = document.getElementById("messageInput");
+        const message = inputElement.value;
+        if (message.trim() !== "") {
+          ws.send(message);
+          inputElement.value = "";
+          displayMessage(`You: ${message}`);
+        }
+      }
+    </script>
+  </body>
+</html>
